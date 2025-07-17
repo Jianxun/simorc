@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "simorc"
+version = "0.0.0"
+authors = [
+  { name="Jianxun Zhu", email="zhujianxun.bupt@gmail.com" },
+]
+description = "A simulation orchestration tool."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/Jianxun/simorc"
+"Bug Tracker" = "https://github.com/Jianxun/simorc/issues" 
