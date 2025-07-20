@@ -6,6 +6,7 @@ import click
 
 from ..loader import validate_project
 from ..generator import build_sweep
+from ..status import initialize_run_status_csv, consolidate_run_status_csv, get_sweep_progress
 from .utils import (
     handle_cli_errors, success_message, info_message, step_message,
     validate_project_path, format_validation_results, format_build_results
@@ -103,11 +104,120 @@ def validate_command(directory: str) -> None:
     format_validation_results(results)
 
 
+@handle_cli_errors
 def run_command(sweep_run_id: str, parallel: int) -> None:
     """Execute a prepared sweep (Stage 2: Execution)."""
-    click.echo(f"Running sweep: {sweep_run_id}")
-    click.echo(f"Using {parallel} parallel processes")
-    # TODO: Implement sweep execution
+    import subprocess
+    import time
+    
+    # Find sweep directory - try multiple locations
+    search_paths = [
+        Path(f"results/{sweep_run_id}"),  # results/sweep_name
+        Path(sweep_run_id),               # direct path
+        Path(f"results").glob(f"*{sweep_run_id}*")  # partial match in results
+    ]
+    
+    sweep_dir = None
+    for path in search_paths[:2]:  # Check first two directly
+        if path.exists() and path.is_dir():
+            sweep_dir = path
+            break
+    
+    if not sweep_dir:  # Check glob results
+        try:
+            for path in search_paths[2]:
+                if path.is_dir():
+                    sweep_dir = path
+                    break
+        except:
+            pass
+    
+    if not sweep_dir:
+        click.echo(f"❌ Sweep directory not found: {sweep_run_id}")
+        click.echo("Available sweeps:")
+        if Path("results").exists():
+            for path in Path("results").glob("*"):
+                if path.is_dir():
+                    click.echo(f"  - {path.name}")
+        return
+    
+    click.echo(f"🚀 Running sweep: {sweep_dir}")
+    click.echo(f"⚡ Using {parallel} parallel processes")
+    
+    # Validate sweep directory
+    metadata_file = sweep_dir / "metadata.csv"
+    test_file = sweep_dir / "tests" / f"test_{sweep_dir.name.split('_')[0]}_values.py"  # Simplified
+    
+    if not metadata_file.exists():
+        click.echo(f"❌ metadata.csv not found in {sweep_dir}")
+        return
+    
+    # Find test file - more robust search
+    test_files = list((sweep_dir / "tests").glob("test_*.py")) if (sweep_dir / "tests").exists() else []
+    if not test_files:
+        click.echo(f"❌ No test files found in {sweep_dir}/tests/")
+        return
+    
+    test_file = test_files[0]  # Use first test file found
+    click.echo(f"📋 Test file: {test_file}")
+    
+    # Initialize run_status.csv
+    initialize_run_status_csv(sweep_dir)
+    
+    # Build pytest command with relative path from sweep directory
+    pytest_args = [
+        "python", "-m", "pytest",
+        str(test_file.relative_to(sweep_dir)),  # Relative path from sweep dir
+        "-v", "-x"  # verbose, stop on first failure
+    ]
+    
+    # Add parallel execution if requested
+    if parallel > 1:
+        pytest_args.extend(["-n", str(parallel)])
+        click.echo(f"🔄 Parallel execution enabled with {parallel} workers")
+    
+    click.echo(f"⚙️  Command: {' '.join(pytest_args)}")
+    
+    # Execute pytest
+    start_time = time.time()
+    try:
+        result = subprocess.run(
+            pytest_args,
+            cwd=sweep_dir,
+            capture_output=False,  # Show output in real-time
+            text=True
+        )
+        
+        execution_time = time.time() - start_time
+        
+        # Consolidate status after execution
+        click.echo("\n📊 Consolidating results...")
+        consolidate_run_status_csv(sweep_dir)
+        
+        # Show summary
+        progress = get_sweep_progress(sweep_dir)
+        click.echo(f"\n✅ Execution completed in {execution_time:.1f}s")
+        click.echo(f"📈 Results: {progress['completed']}/{progress['total']} completed")
+        
+        if progress['failed'] > 0:
+            click.echo(f"❌ Failed: {progress['failed']} cases")
+        
+        if result.returncode == 0:
+            success_message(f"Sweep '{sweep_run_id}' executed successfully!")
+        else:
+            click.echo(f"⚠️  Pytest exited with code {result.returncode}")
+            
+    except KeyboardInterrupt:
+        click.echo("\n⏹️  Execution interrupted by user")
+        click.echo("📊 Consolidating partial results...")
+        consolidate_run_status_csv(sweep_dir)
+        
+        progress = get_sweep_progress(sweep_dir)
+        click.echo(f"📈 Partial results: {progress['completed']}/{progress['total']} completed")
+        
+    except Exception as e:
+        click.echo(f"❌ Execution failed: {e}")
+        return
 
 
 def status_command() -> None:
