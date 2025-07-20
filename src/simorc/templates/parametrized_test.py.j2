@@ -57,7 +57,7 @@ def test_simulation_case(case_id, {{ param_names | join(', ') }}):
     
     try:
         # Execute ngspice simulation using utility function
-        raw_file, simulation_duration = run_ngspice_simulation(
+        raw_file, simulation_duration, relative_result_path = run_ngspice_simulation(
             case_id=case_id,
             netlist_path=netlist_path,
             case_dir=case_dir,
@@ -70,7 +70,7 @@ def test_simulation_case(case_id, {{ param_names | join(', ') }}):
             case_dir, 
             case_id, 
             CaseStatus.COMPLETED,
-            result_file=raw_file.name,
+            result_file=relative_result_path,
             simulation_duration=simulation_duration
         )
         

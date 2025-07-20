@@ -33,14 +33,16 @@ def test_run_ngspice_simulation_success(tmp_path):
         raw_file.write_text("test raw data")
         
         # Test execution
-        result = run_ngspice_simulation(
+        raw_file_result, duration, relative_path = run_ngspice_simulation(
             case_id="1",
             netlist_path=netlist_path,
             case_dir=case_dir,
             parameters={"R": "100", "C": "1n"}
         )
         
-        assert result == raw_file
+        assert raw_file_result == raw_file
+        assert isinstance(duration, float)
+        assert relative_path == "case_1/case_1_results.raw"
         mock_run.assert_called_once()
 
 

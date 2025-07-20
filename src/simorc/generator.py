@@ -76,7 +76,7 @@ def generate_metadata_csv(sweep_name: str, combinations: List[Dict[str, str]],
             row = {
                 "case_id": case_id,
                 "status": "pending",
-                "result_file": f"case_{case_id}.raw"
+                "result_file": f"case_{case_id}/case_{case_id}_results.raw"
             }
             # Add parameter values
             row.update(combination)

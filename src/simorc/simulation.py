@@ -15,7 +15,7 @@ def run_ngspice_simulation(
     case_dir: Path,
     parameters: Dict[str, Any],
     timeout: int = 60
-) -> Tuple[Path, float]:
+) -> Tuple[Path, float, str]:
     """Execute ngspice simulation for a test case.
     
     Args:
@@ -26,7 +26,7 @@ def run_ngspice_simulation(
         timeout: Simulation timeout in seconds
         
     Returns:
-        Tuple of (raw_file_path, simulation_duration_seconds)
+        Tuple of (raw_file_path, simulation_duration_seconds, relative_result_path)
         
     Raises:
         SimulationError: If simulation fails or results are invalid
@@ -70,7 +70,14 @@ def run_ngspice_simulation(
             raise SimulationError(f"Empty raw file for case {case_id}: {raw_file}")
         
         print(f"✅ Simulation completed for case {case_id} in {simulation_duration:.3f}s")
-        return raw_file, simulation_duration
+        
+        # Return relative path from sweep directory (where metadata.csv is located)
+        # case_dir is typically: sweep_dir/case_X
+        # raw_file is: sweep_dir/case_X/case_X_results.raw
+        # We want: case_X/case_X_results.raw
+        relative_path = f"case_{case_id}/{raw_file.name}"
+        
+        return raw_file, simulation_duration, relative_path
         
     except subprocess.TimeoutExpired:
         raise SimulationError(f"Simulation timeout for case {case_id}")
