@@ -20,7 +20,8 @@ def update_case_status(
     case_id: str,
     status: CaseStatus,
     error_message: Optional[str] = None,
-    result_file: Optional[str] = None
+    result_file: Optional[str] = None,
+    simulation_duration: Optional[float] = None
 ) -> None:
     """Update status for a single case using run_status.json file.
     
@@ -30,13 +31,13 @@ def update_case_status(
         status: New status for the case
         error_message: Error message if status is FAILED
         result_file: Path to result file if status is COMPLETED
+        simulation_duration: Simulation time in seconds
     """
     status_file = case_dir / "run_status.json"
     
     status_data = {
         "case_id": case_id,
         "status": status.value,
-        "timestamp": time.time(),
         "timestamp_iso": time.strftime("%Y-%m-%d %H:%M:%S")
     }
     
@@ -45,6 +46,9 @@ def update_case_status(
     
     if result_file:
         status_data["result_file"] = result_file
+    
+    if simulation_duration is not None:
+        status_data["simulation_duration"] = simulation_duration
     
     # Atomic write
     try:
@@ -107,8 +111,7 @@ def consolidate_run_status_csv(results_dir: Path) -> None:
     - Individual test functions write run_status.json files (scatter)
     - This function consolidates them into run_status.csv (gather)
     
-    The run_status.csv maintains the same number of rows as metadata.csv
-    and can be joined using case_id.
+    The run_status.csv includes parameter columns from metadata.csv for immediate visibility.
     
     Args:
         results_dir: Directory containing metadata.csv and case subdirectories
@@ -120,11 +123,16 @@ def consolidate_run_status_csv(results_dir: Path) -> None:
         print(f"Warning: metadata.csv not found at {metadata_file}")
         return
     
-    # Read metadata to get all case IDs
+    # Read metadata to get all case IDs and parameters
     metadata_rows = []
     with open(metadata_file, 'r') as f:
         reader = csv.DictReader(f)
+        fieldnames = reader.fieldnames
         metadata_rows = list(reader)
+    
+    # Extract parameter columns (exclude case_id, status, result_file)
+    param_columns = [col for col in fieldnames 
+                    if col not in ['case_id', 'status', 'result_file']]
     
     # Collect status updates from case directories
     case_statuses = {}
@@ -133,37 +141,43 @@ def consolidate_run_status_csv(results_dir: Path) -> None:
         if case_id:
             case_statuses[case_id] = status
     
-    # Create run_status.csv with same number of rows as metadata.csv
+    # Create run_status.csv with parameter columns and status info
     run_status_rows = []
     for metadata_row in metadata_rows:
         case_id = metadata_row.get("case_id")
         
+        # Start with parameters from metadata
+        run_status_row = {"case_id": case_id}
+        for param in param_columns:
+            run_status_row[param] = metadata_row.get(param, "")
+        
+        # Add status information
         if case_id in case_statuses:
             status_data = case_statuses[case_id]
-            run_status_row = {
-                "case_id": case_id,
+            run_status_row.update({
                 "status": status_data.get("status", "pending"),
-                "timestamp": status_data.get("timestamp", ""),
                 "timestamp_iso": status_data.get("timestamp_iso", ""),
+                "simulation_duration": status_data.get("simulation_duration", ""),
                 "result_file": status_data.get("result_file", ""),
                 "error_message": status_data.get("error_message", "")
-            }
+            })
         else:
-            # Default row for cases without status updates
-            run_status_row = {
-                "case_id": case_id,
+            # Default status for cases without updates
+            run_status_row.update({
                 "status": "pending",
-                "timestamp": "",
                 "timestamp_iso": "",
+                "simulation_duration": "",
                 "result_file": "",
                 "error_message": ""
-            }
+            })
         
         run_status_rows.append(run_status_row)
     
-    # Write run_status.csv
+    # Write run_status.csv with parameter columns first, then status columns
     try:
-        fieldnames = ["case_id", "status", "timestamp", "timestamp_iso", "result_file", "error_message"]
+        status_columns = ["status", "timestamp_iso", "simulation_duration", "result_file", "error_message"]
+        fieldnames = ["case_id"] + param_columns + status_columns
+        
         with open(run_status_file, 'w', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
@@ -191,27 +205,42 @@ def initialize_run_status_csv(results_dir: Path) -> None:
         print(f"Warning: metadata.csv not found at {metadata_file}")
         return
     
-    # Read metadata to get all case IDs
+    # Read metadata to get all case IDs and parameters
     with open(metadata_file, 'r') as f:
         reader = csv.DictReader(f)
+        fieldnames = reader.fieldnames
         metadata_rows = list(reader)
+    
+    # Extract parameter columns (exclude case_id, status, result_file)
+    param_columns = [col for col in fieldnames 
+                    if col not in ['case_id', 'status', 'result_file']]
     
     # Create initial run_status.csv with all cases pending
     run_status_rows = []
     for metadata_row in metadata_rows:
         case_id = metadata_row.get("case_id")
-        run_status_rows.append({
-            "case_id": case_id,
+        
+        # Start with parameters from metadata
+        run_status_row = {"case_id": case_id}
+        for param in param_columns:
+            run_status_row[param] = metadata_row.get(param, "")
+        
+        # Add pending status
+        run_status_row.update({
             "status": "pending",
-            "timestamp": "",
             "timestamp_iso": "",
+            "simulation_duration": "",
             "result_file": "",
             "error_message": ""
         })
+        
+        run_status_rows.append(run_status_row)
     
     # Write initial run_status.csv
     try:
-        fieldnames = ["case_id", "status", "timestamp", "timestamp_iso", "result_file", "error_message"]
+        status_columns = ["status", "timestamp_iso", "simulation_duration", "result_file", "error_message"]
+        fieldnames = ["case_id"] + param_columns + status_columns
+        
         with open(run_status_file, 'w', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()

@@ -15,7 +15,7 @@ def run_ngspice_simulation(
     case_dir: Path,
     parameters: Dict[str, Any],
     timeout: int = 60
-) -> Path:
+) -> Tuple[Path, float]:
     """Execute ngspice simulation for a test case.
     
     Args:
@@ -26,11 +26,13 @@ def run_ngspice_simulation(
         timeout: Simulation timeout in seconds
         
     Returns:
-        Path to the generated .raw file
+        Tuple of (raw_file_path, simulation_duration_seconds)
         
     Raises:
         SimulationError: If simulation fails or results are invalid
     """
+    import time
+    
     print(f"Running simulation for case {case_id} with parameters: {parameters}")
     
     # Validate inputs
@@ -39,6 +41,8 @@ def run_ngspice_simulation(
     
     if netlist_path.stat().st_size == 0:
         raise SimulationError(f"Empty netlist: {netlist_path}")
+    
+    start_time = time.time()
     
     try:
         # Run ngspice with the netlist
@@ -49,6 +53,8 @@ def run_ngspice_simulation(
             cwd=case_dir,
             timeout=timeout
         )
+        
+        simulation_duration = time.time() - start_time
         
         # Check for simulation success
         if result.returncode != 0:
@@ -63,8 +69,8 @@ def run_ngspice_simulation(
         if raw_file.stat().st_size == 0:
             raise SimulationError(f"Empty raw file for case {case_id}: {raw_file}")
         
-        print(f"✅ Simulation completed for case {case_id}")
-        return raw_file
+        print(f"✅ Simulation completed for case {case_id} in {simulation_duration:.3f}s")
+        return raw_file, simulation_duration
         
     except subprocess.TimeoutExpired:
         raise SimulationError(f"Simulation timeout for case {case_id}")
