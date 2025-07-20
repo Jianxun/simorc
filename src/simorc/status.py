@@ -48,7 +48,7 @@ def update_case_status(
         status_data["result_file"] = result_file
     
     if simulation_duration is not None:
-        status_data["simulation_duration"] = simulation_duration
+        status_data["simulation_duration"] = round(simulation_duration, 3)
     
     # Atomic write
     try:
