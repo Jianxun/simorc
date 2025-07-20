@@ -115,12 +115,40 @@ def init(directory: str) -> None:
 @click.argument('sweep_name')
 @click.option('--force', is_flag=True, 
               help='Overwrite existing sweep directory')
-def build(sweep_name: str, force: bool) -> None:
+@click.option('--directory', '-d', default='.', 
+              help='Project directory (default: current directory)')
+def build(sweep_name: str, force: bool, directory: str) -> None:
     """Build/prepare a sweep for execution (Stage 1: Generation)."""
+    from ..generator import build_sweep
+    
+    project_path = Path(directory).resolve()
     click.echo(f"Building sweep: {sweep_name}")
     if force:
         click.echo("Force mode enabled - will overwrite existing files")
-    # TODO: Implement sweep generation
+    
+    try:
+        results = build_sweep(project_path, sweep_name, force)
+        
+        click.echo(f"✅ Sweep '{sweep_name}' built successfully!")
+        click.echo(f"📁 Output directory: {results['output_dir']}")
+        click.echo(f"📋 Generated {results['num_cases']} test cases")
+        click.echo(f"🧪 Testbench: {results['testbench']}")
+        click.echo(f"⚙️  Parameters: {', '.join(results['parameters'])}")
+        click.echo(f"📄 Metadata: {results['metadata_path'].name}")
+        click.echo(f"🧪 Test files: {len(results['test_files'])} files generated")
+        
+        click.echo(f"\nNext steps:")
+        click.echo(f"  Run 'simorc run {sweep_name}' to execute the sweep")
+        
+    except FileNotFoundError as e:
+        click.echo(f"❌ File not found: {e}", err=True)
+        raise click.Abort()
+    except ValueError as e:
+        click.echo(f"❌ Configuration error: {e}", err=True)
+        raise click.Abort()
+    except Exception as e:
+        click.echo(f"❌ Build failed: {e}", err=True)
+        raise click.Abort()
 
 
 @cli.command()

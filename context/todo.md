@@ -1,16 +1,16 @@
 # Project Todo List
 
-## Current Sprint - Phase 3: Stage 1 - Generator
-- [ ] Implement simorc build <sweep_name> command
-- [ ] Create metadata.csv generation logic  
-- [ ] Implement test_*.py generation for pytest
-- [ ] Test with example/rc sweep configuration
-
-## Phase 4: Stage 2 - Executor (Next)
+## Current Sprint - Phase 4: Stage 2 - Executor
 - [ ] Implement simorc run <sweep_run_id> command
 - [ ] Add ngspice execution and process management
 - [ ] Implement parallel execution with pytest-xdist
 - [ ] Add result file management and status tracking
+- [ ] Test with example/rc sweep execution
+
+## Phase 5: Stage 3 - Analyzer (Future)
+- [ ] Implement simorc plot commands
+- [ ] Add result parsing and visualization
+- [ ] Create report generation functionality
 
 ## Backlog
 - [ ] Add support for different simulation engines.
@@ -45,4 +45,10 @@
   - [X] Test configuration validation with example/rc project (9 tests)
   - [X] Implement basic error handling and user feedback (7 tests)
   - [X] Add simorc validate command with detailed reporting
-  - [X] **Total: 46 tests passing for complete Phase 2** 
+  - [X] **Total: 46 tests passing for complete Phase 2**
+- [X] **Phase 3: Stage 1 - Generator**
+  - [X] Implement simorc build <sweep_name> command (6 tests)
+  - [X] Create metadata.csv generation logic for tracking simulation cases
+  - [X] Implement test_*.py generation for pytest execution
+  - [X] Test Phase 3 implementation with example/rc sweep configuration
+  - [X] **Total: 52 tests passing for complete Phase 3** 
