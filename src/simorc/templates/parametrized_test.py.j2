@@ -1,9 +1,11 @@
 """Parametrized tests for sweep: {{ sweep_name }}"""
 import csv
-import subprocess
 from pathlib import Path
 
 import pytest
+
+from simorc.simulation import run_ngspice_simulation, SimulationError
+from simorc.status import update_case_status, CaseStatus
 
 
 def load_test_cases():
@@ -50,39 +52,33 @@ def test_simulation_case(case_id, {{ param_names | join(', ') }}):
     assert netlist_path.exists(), f"Netlist not found: {netlist_path}"
     assert netlist_path.stat().st_size > 0, f"Empty netlist: {netlist_path}"
     
-    # Execute ngspice simulation
-    print(f"Running simulation for case {case_id} with parameters: {parameters}")
+    # Update status to running
+    update_case_status(case_dir, case_id, CaseStatus.RUNNING)
     
     try:
-        # Run ngspice with the netlist
-        result = subprocess.run(
-            ['ngspice', '-b', str(netlist_path)],
-            capture_output=True,
-            text=True,
-            cwd=case_dir,
-            timeout=60  # 60 second timeout
+        # Execute ngspice simulation using utility function
+        raw_file = run_ngspice_simulation(
+            case_id=case_id,
+            netlist_path=netlist_path,
+            case_dir=case_dir,
+            parameters=parameters,
+            timeout=60
         )
         
-        # Check for simulation success
-        if result.returncode != 0:
-            pytest.fail(f"ngspice failed for case {case_id}: {result.stderr}")
+        # Update status to completed
+        update_case_status(
+            case_dir, 
+            case_id, 
+            CaseStatus.COMPLETED,
+            result_file=raw_file.name
+        )
         
-        # Verify output .raw file exists
-        raw_file = case_dir / f"case_{case_id}_results.raw"
-        if not raw_file.exists():
-            pytest.fail(f"Raw file not created for case {case_id}: {raw_file}")
-        
-        # Verify raw file has content
-        if raw_file.stat().st_size == 0:
-            pytest.fail(f"Empty raw file for case {case_id}: {raw_file}")
-        
-        print(f"✅ Simulation completed for case {case_id}")
-        
-        # TODO: Update metadata.csv status (will be implemented in Step 4)
-        
-    except subprocess.TimeoutExpired:
-        pytest.fail(f"Simulation timeout for case {case_id}")
-    except FileNotFoundError:
-        pytest.fail("ngspice not found in PATH")
-    except Exception as e:
-        pytest.fail(f"Simulation error for case {case_id}: {e}")
+    except SimulationError as e:
+        # Update status to failed with error message
+        update_case_status(
+            case_dir,
+            case_id, 
+            CaseStatus.FAILED,
+            error_message=str(e)
+        )
+        pytest.fail(str(e))
