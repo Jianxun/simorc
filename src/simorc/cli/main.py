@@ -135,7 +135,7 @@ def build(sweep_name: str, force: bool, directory: str) -> None:
         click.echo(f"🧪 Testbench: {results['testbench']}")
         click.echo(f"⚙️  Parameters: {', '.join(results['parameters'])}")
         click.echo(f"📄 Metadata: {results['metadata_path'].name}")
-        click.echo(f"🧪 Test files: {len(results['test_files'])} files generated")
+        click.echo(f"🧪 Test file: {results['test_file'].name}")
         
         click.echo(f"\nNext steps:")
         click.echo(f"  Run 'simorc run {sweep_name}' to execute the sweep")

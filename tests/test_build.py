@@ -113,13 +113,22 @@ wrdata {{ filename_raw }} frequency v(out)
         metadata_path = self.project_path / "results" / "test_sweep" / "metadata.csv"
         assert metadata_path.exists()
         
-        # Check that test files were generated
-        test_dir = self.project_path / "results" / "test_sweep" / "tests"
-        assert test_dir.exists()
+        # Check that case directories were generated
+        output_dir = self.project_path / "results" / "test_sweep"
+        case_dirs = list(output_dir.glob("case_*"))
+        assert len(case_dirs) == 9  # Should have 9 case directories (3x3 parameter combinations)
         
-        # Should have 9 test cases (3x3 parameter combinations)
+        # Check that single parametrized test file was generated
+        test_dir = output_dir / "tests"
+        assert test_dir.exists()
         test_files = list(test_dir.glob("test_*.py"))
-        assert len(test_files) == 9
+        assert len(test_files) == 1  # Should have exactly one parametrized test file
+        
+        # Check that each case directory has a netlist
+        for case_dir in case_dirs:
+            netlist_path = case_dir / "netlist.spice"
+            assert netlist_path.exists()
+            assert netlist_path.stat().st_size > 0
     
     def test_build_creates_correct_metadata(self):
         """Test that build creates metadata.csv with correct structure."""
