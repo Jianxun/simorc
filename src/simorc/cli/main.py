@@ -1,7 +1,9 @@
 """Main CLI interface for simorc."""
 from typing import Optional
+from pathlib import Path
 
 import click
+import yaml
 
 
 @click.group(invoke_without_command=True)
@@ -22,8 +24,89 @@ def cli(ctx: click.Context) -> None:
               help='Directory to initialize (default: current directory)')
 def init(directory: str) -> None:
     """Initialize a new simorc project structure."""
-    click.echo(f"Initializing simorc project in: {directory}")
-    # TODO: Implement project scaffolding
+    project_path = Path(directory).resolve()
+    click.echo(f"Initializing simorc project in: {project_path}")
+    
+    try:
+        # Create directory structure
+        directories = [
+            "netlists",
+            "testbenches", 
+            "sweeps",
+            "results"
+        ]
+        
+        for dir_name in directories:
+            dir_path = project_path / dir_name
+            dir_path.mkdir(parents=True, exist_ok=True)
+            click.echo(f"Created directory: {dir_name}/")
+        
+        # Create sim_setup.yaml template
+        sim_setup_content = {
+            "dut": {
+                "netlist": "./netlists/dut.spice"
+            },
+            "testbenches": {
+                "example": "./testbenches/example"
+            },
+            "sweeps": {
+                "example_sweep": "./sweeps/example_sweep.yaml"
+            }
+        }
+        
+        sim_setup_path = project_path / "sim_setup.yaml"
+        if not sim_setup_path.exists():
+            with open(sim_setup_path, 'w') as f:
+                yaml.dump(sim_setup_content, f, default_flow_style=False, sort_keys=False)
+            click.echo("Created sim_setup.yaml")
+        else:
+            click.echo("sim_setup.yaml already exists, skipping")
+        
+        # Create example testbench structure
+        example_tb_path = project_path / "testbenches" / "example"
+        example_tb_path.mkdir(parents=True, exist_ok=True)
+        
+        tb_config_content = {
+            "template": "./tb_example.spice.j2",
+            "filename_raw": "results.raw",
+            "filename_log": "sim.log",
+            "parameters": {
+                "param1": "1k",
+                "param2": "1n"
+            }
+        }
+        
+        tb_config_path = example_tb_path / "config.yaml"
+        if not tb_config_path.exists():
+            with open(tb_config_path, 'w') as f:
+                yaml.dump(tb_config_content, f, default_flow_style=False, sort_keys=False)
+            click.echo("Created testbenches/example/config.yaml")
+        
+        # Create example sweep file
+        sweep_content = {
+            "testbench": "example",
+            "parameters": {
+                "param1": ["100", "1k", "10k"],
+                "param2": ["100p", "1n", "10n"]
+            }
+        }
+        
+        sweep_path = project_path / "sweeps" / "example_sweep.yaml"
+        if not sweep_path.exists():
+            with open(sweep_path, 'w') as f:
+                yaml.dump(sweep_content, f, default_flow_style=False, sort_keys=False)
+            click.echo("Created sweeps/example_sweep.yaml")
+        
+        click.echo("✓ Project initialized successfully!")
+        click.echo("\nNext steps:")
+        click.echo("1. Add your DUT netlist to netlists/")
+        click.echo("2. Configure testbenches in testbenches/")
+        click.echo("3. Define parameter sweeps in sweeps/")
+        click.echo("4. Run 'simorc build <sweep_name>' to prepare simulations")
+        
+    except Exception as e:
+        click.echo(f"Error initializing project: {e}", err=True)
+        raise click.Abort()
 
 
 @cli.command()
