@@ -62,6 +62,20 @@
     - Generated proper metadata.csv and test files
     - Verified with actual execution on example/rc project
   - **Total: 52 tests passing for complete Phase 3 implementation**
+- **Phase 3 Refinements Complete**: Generator logic significantly improved:
+  - ✅ **Organized Directory Structure**: Each case in own `case_X/` folder with individual netlists
+  - ✅ **Pytest Parametrization**: Single parametrized test instead of 9 individual test functions
+  - ✅ **Jinja2 Template System**: Proper testbench template rendering with full context
+    - Netlist generation uses testbench `.j2` templates with combined parameter context
+    - Test file generation uses clean template at `src/simorc/templates/parametrized_test.py.j2`
+    - No more inline f-strings, all template-based for maintainability
+  - ✅ **metadata.csv as Single Source of Truth**: Test files dynamically read from CSV
+    - Eliminates parameter duplication between CSV and test code
+    - Tests automatically stay in sync with metadata changes
+    - Clean separation of data (CSV) and logic (test template)
+  - ✅ **Proper Template Context**: Testbench parameters + sweep overrides + special variables
+    - `config.root` for include paths, `config.filename_raw` for output files
+    - Generated netlists match testbench specifications exactly
 - **Prototype Validation Complete**: Created and tested ngspice toolchain integration in `prototypes/` directory:
   - Simple RC circuit simulation working (`rc_circuit.cir`)
   - ngspice execution verified (generates 10,008 data points)

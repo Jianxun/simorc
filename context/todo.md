@@ -51,4 +51,11 @@
   - [X] Create metadata.csv generation logic for tracking simulation cases
   - [X] Implement test_*.py generation for pytest execution
   - [X] Test Phase 3 implementation with example/rc sweep configuration
-  - [X] **Total: 52 tests passing for complete Phase 3** 
+  - [X] **Total: 52 tests passing for complete Phase 3**
+- [X] **Phase 3 Refinements: Generator Improvements**
+  - [X] Refactor directory structure to use case_X folders for better organization
+  - [X] Replace individual test functions with pytest parametrization
+  - [X] Fix netlist generation to properly render Jinja2 templates with full context
+  - [X] Refactor test generation to use Jinja2 templates instead of inline f-strings
+  - [X] Make metadata.csv the single source of truth by having tests read from it
+  - [X] **Result: Clean, maintainable generator with proper template system** 

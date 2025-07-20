@@ -85,17 +85,75 @@ def generate_metadata_csv(sweep_name: str, combinations: List[Dict[str, str]],
     return metadata_path
 
 
-def generate_test_file(case_id: str, combination: Dict[str, str], 
-                      testbench_config: Dict[str, Any],
-                      dut_netlist_path: Path,
-                      output_dir: Path) -> Path:
-    """Generate a pytest test file for a single simulation case.
+def generate_case_directory(case_id: str, combination: Dict[str, str],
+                           testbench_config: Dict[str, Any],
+                           testbench_path: Path,
+                           project_path: Path,
+                           output_dir: Path) -> Path:
+    """Generate a case directory with netlist for a single simulation case.
     
     Args:
         case_id: Unique identifier for this test case
         combination: Parameter values for this case
         testbench_config: Testbench configuration dictionary
-        dut_netlist_path: Path to the DUT netlist file
+        testbench_path: Path to testbench directory
+        project_path: Path to project root
+        output_dir: Directory to create case folder in
+        
+    Returns:
+        Path to the created case directory
+    """
+    case_dir = output_dir / f"case_{case_id}"
+    case_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Load and render Jinja2 template
+    template_file = testbench_path / testbench_config['template']
+    if not template_file.exists():
+        raise FileNotFoundError(f"Template file not found: {template_file}")
+    
+    with open(template_file, 'r') as f:
+        template_content = f.read()
+    
+    template = Template(template_content)
+    
+    # Create configuration context for template rendering
+    config = {}
+    
+    # Add testbench parameters as base configuration
+    config.update(testbench_config.get('parameters', {}))
+    
+    # Override with sweep parameter values
+    config.update(combination)
+    
+    # Add special context variables
+    config['root'] = str(project_path) + "/"  # Root path for includes
+    config['case_id'] = case_id
+    
+    # Set output filename specific to this case
+    base_filename = testbench_config.get('filename_raw', 'results.raw')
+    config['filename_raw'] = f"case_{case_id}_{base_filename}"
+    
+    # Render the template
+    try:
+        netlist_content = template.render(config=config)
+    except Exception as e:
+        raise ValueError(f"Template rendering failed for case {case_id}: {e}")
+    
+    # Write rendered netlist to case directory
+    netlist_path = case_dir / "netlist.spice"
+    with open(netlist_path, 'w') as f:
+        f.write(netlist_content)
+    
+    return case_dir
+
+
+def generate_parametrized_test_file(sweep_name: str, combinations: List[Dict[str, str]],
+                                   output_dir: Path) -> Path:
+    """Generate a single parametrized pytest test file that reads from metadata.csv.
+    
+    Args:
+        sweep_name: Name of the sweep
+        combinations: List of parameter combinations (used only to determine param names)
         output_dir: Directory to write test file
         
     Returns:
@@ -104,52 +162,24 @@ def generate_test_file(case_id: str, combination: Dict[str, str],
     test_dir = output_dir / "tests"
     test_dir.mkdir(parents=True, exist_ok=True)
     
-    test_file_path = test_dir / f"test_case_{case_id}.py"
+    test_file_path = test_dir / f"test_{sweep_name}.py"
     
-    # Generate parameter lines for netlist
-    param_lines = "\n".join([f".param {param}={value}" for param, value in combination.items()])
+    # Extract parameter names from combinations
+    param_names = list(combinations[0].keys()) if combinations else []
     
-    # Generate test file content
-    test_content = f'''"""Test case: {case_id}"""
-import subprocess
-from pathlib import Path
-
-import pytest
-
-
-def test_case_{case_id}():
-    """Run simulation for case: {case_id}"""
-    # Test parameters
-    parameters = {combination}
+    # Load and render template
+    template_path = Path(__file__).parent / "templates" / "parametrized_test.py.j2"
     
-    # Create netlist with parameters
-    netlist_content = """* Generated netlist for case {case_id}
-.include {dut_netlist_path.resolve()}
-
-{param_lines}
-
-* Testbench from {testbench_config.get('template', 'N/A')}
-* Output files: {testbench_config.get('filename_raw', 'results.raw')}
-
-.control
-echo "Starting simulation for case {case_id}"
-.endc
-
-.end
-"""
+    with open(template_path, 'r') as f:
+        template_content = f.read()
     
-    # Write test netlist
-    test_netlist_path = Path(__file__).parent / "netlist_case_{case_id}.spice"
-    with open(test_netlist_path, 'w') as f:
-        f.write(netlist_content)
+    template = Template(template_content)
     
-    # For now, just verify the netlist was created
-    assert test_netlist_path.exists()
-    assert test_netlist_path.stat().st_size > 0
-    
-    # TODO: Add actual ngspice execution here
-    # This will be implemented in Phase 4 (Stage 2: Executor)
-'''
+    # Render the template with just parameter names - data comes from CSV
+    test_content = template.render(
+        sweep_name=sweep_name,
+        param_names=param_names
+    )
     
     with open(test_file_path, 'w') as f:
         f.write(test_content)
@@ -207,24 +237,27 @@ def build_sweep(project_path: Path, sweep_name: str, force: bool = False) -> Dic
     # Generate metadata.csv
     metadata_path = generate_metadata_csv(sweep_name, combinations, output_dir)
     
-    # Generate test files
-    dut_netlist_path = project_path / sim_setup.dut.netlist
-    test_files = []
+    # Generate case directories with netlists
+    case_dirs = []
     
     for index, combination in enumerate(combinations):
         case_id = create_case_id(index)
-        test_file_path = generate_test_file(
+        case_dir = generate_case_directory(
             case_id, combination, testbench_config.model_dump(),
-            dut_netlist_path, output_dir
+            testbench_path, project_path, output_dir
         )
-        test_files.append(test_file_path)
+        case_dirs.append(case_dir)
+    
+    # Generate single parametrized test file
+    test_file_path = generate_parametrized_test_file(sweep_name, combinations, output_dir)
     
     # Return build results
     return {
         "sweep_name": sweep_name,
         "output_dir": output_dir,
         "metadata_path": metadata_path,
-        "test_files": test_files,
+        "test_file": test_file_path,
+        "case_dirs": case_dirs,
         "num_cases": len(combinations),
         "testbench": testbench_name,
         "parameters": list(sweep_config.parameters.keys())
