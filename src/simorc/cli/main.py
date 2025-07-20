@@ -5,6 +5,8 @@ from pathlib import Path
 import click
 import yaml
 
+from ..loader import validate_project
+
 
 @click.group(invoke_without_command=True)
 @click.version_option(version="0.0.0", prog_name="simorc")
@@ -137,6 +139,46 @@ def status() -> None:
     """Show status of all sweeps."""
     click.echo("Sweep status:")
     # TODO: Implement status reporting
+
+
+@cli.command()
+@click.option('--directory', '-d', default='.', 
+              help='Project directory to validate (default: current directory)')
+def validate(directory: str) -> None:
+    """Validate project configuration files."""
+    project_path = Path(directory).resolve()
+    
+    try:
+        click.echo(f"Validating project in: {project_path}")
+        results = validate_project(project_path)
+        
+        click.echo(f"\n📋 Validation Results:")
+        click.echo(f"  sim_setup.yaml: {results['sim_setup']}")
+        
+        if results['testbenches']:
+            click.echo("  Testbenches:")
+            for name, status in results['testbenches'].items():
+                click.echo(f"    {name}: {status}")
+        
+        if results['sweeps']:
+            click.echo("  Sweeps:")
+            for name, status in results['sweeps'].items():
+                click.echo(f"    {name}: {status}")
+        
+        if results['errors']:
+            click.echo("\n❌ Validation Errors:")
+            for error in results['errors']:
+                click.echo(f"  • {error}")
+            raise click.Abort()
+        else:
+            click.echo("\n✅ All configurations are valid!")
+            
+    except FileNotFoundError as e:
+        click.echo(f"❌ {e}", err=True)
+        raise click.Abort()
+    except Exception as e:
+        click.echo(f"❌ Validation failed: {e}", err=True)
+        raise click.Abort()
 
 
 @cli.command()
