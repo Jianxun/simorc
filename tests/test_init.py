@@ -19,7 +19,7 @@ class TestInitCommand:
             result = runner.invoke(cli, ['init', '-d', temp_dir])
             
             assert result.exit_code == 0
-            assert "✓ Project initialized successfully!" in result.output
+            assert "✅ Project initialized successfully!" in result.output
             
             temp_path = Path(temp_dir)
             
@@ -122,7 +122,7 @@ class TestInitCommand:
                 result = runner.invoke(cli, ['init'])
                 
                 assert result.exit_code == 0
-                assert "✓ Project initialized successfully!" in result.output
+                assert "✅ Project initialized successfully!" in result.output
                 
                 # Check files were created in current directory
                 assert Path("sim_setup.yaml").exists()

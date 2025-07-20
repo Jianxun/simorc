@@ -18,7 +18,7 @@ class TestErrorHandling:
         result = runner.invoke(cli, ['validate', '-d', '/nonexistent/path'])
         
         assert result.exit_code != 0
-        assert "Configuration file not found" in result.output
+        assert "File not found" in result.output
 
     def test_validate_invalid_yaml_syntax(self):
         """Test validation with invalid YAML syntax."""
