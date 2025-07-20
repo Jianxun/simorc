@@ -50,10 +50,39 @@ def test_simulation_case(case_id, {{ param_names | join(', ') }}):
     assert netlist_path.exists(), f"Netlist not found: {netlist_path}"
     assert netlist_path.stat().st_size > 0, f"Empty netlist: {netlist_path}"
     
-    # TODO: Add actual ngspice execution here
-    # This will be implemented in Phase 4 (Stage 2: Executor)
-    # Expected workflow:
-    # 1. Run ngspice with netlist_path
-    # 2. Check for successful completion
-    # 3. Verify output .raw file exists
-    # 4. Update metadata.csv status
+    # Execute ngspice simulation
+    print(f"Running simulation for case {case_id} with parameters: {parameters}")
+    
+    try:
+        # Run ngspice with the netlist
+        result = subprocess.run(
+            ['ngspice', '-b', str(netlist_path)],
+            capture_output=True,
+            text=True,
+            cwd=case_dir,
+            timeout=60  # 60 second timeout
+        )
+        
+        # Check for simulation success
+        if result.returncode != 0:
+            pytest.fail(f"ngspice failed for case {case_id}: {result.stderr}")
+        
+        # Verify output .raw file exists
+        raw_file = case_dir / f"case_{case_id}_results.raw"
+        if not raw_file.exists():
+            pytest.fail(f"Raw file not created for case {case_id}: {raw_file}")
+        
+        # Verify raw file has content
+        if raw_file.stat().st_size == 0:
+            pytest.fail(f"Empty raw file for case {case_id}: {raw_file}")
+        
+        print(f"✅ Simulation completed for case {case_id}")
+        
+        # TODO: Update metadata.csv status (will be implemented in Step 4)
+        
+    except subprocess.TimeoutExpired:
+        pytest.fail(f"Simulation timeout for case {case_id}")
+    except FileNotFoundError:
+        pytest.fail("ngspice not found in PATH")
+    except Exception as e:
+        pytest.fail(f"Simulation error for case {case_id}: {e}")
