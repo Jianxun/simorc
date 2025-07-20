@@ -100,28 +100,31 @@ def collect_case_statuses(results_dir: Path) -> List[Dict[str, Any]]:
     return statuses
 
 
-def consolidate_metadata_csv(results_dir: Path) -> None:
-    """Consolidate individual case statuses into metadata.csv.
+def consolidate_run_status_csv(results_dir: Path) -> None:
+    """Consolidate individual case statuses into run_status.csv.
     
     This implements the scatter-gather pattern for parallel execution:
     - Individual test functions write run_status.json files (scatter)
-    - This function consolidates them into metadata.csv (gather)
+    - This function consolidates them into run_status.csv (gather)
+    
+    The run_status.csv maintains the same number of rows as metadata.csv
+    and can be joined using case_id.
     
     Args:
         results_dir: Directory containing metadata.csv and case subdirectories
     """
     metadata_file = results_dir / "metadata.csv"
+    run_status_file = results_dir / "run_status.csv"
     
     if not metadata_file.exists():
         print(f"Warning: metadata.csv not found at {metadata_file}")
         return
     
-    # Read current metadata
-    rows = []
+    # Read metadata to get all case IDs
+    metadata_rows = []
     with open(metadata_file, 'r') as f:
         reader = csv.DictReader(f)
-        fieldnames = reader.fieldnames
-        rows = list(reader)
+        metadata_rows = list(reader)
     
     # Collect status updates from case directories
     case_statuses = {}
@@ -130,30 +133,94 @@ def consolidate_metadata_csv(results_dir: Path) -> None:
         if case_id:
             case_statuses[case_id] = status
     
-    # Update rows with collected statuses
-    for row in rows:
-        case_id = row.get("case_id")
+    # Create run_status.csv with same number of rows as metadata.csv
+    run_status_rows = []
+    for metadata_row in metadata_rows:
+        case_id = metadata_row.get("case_id")
+        
         if case_id in case_statuses:
             status_data = case_statuses[case_id]
-            row["status"] = status_data.get("status", "pending")
-            
-            # Update error message if present
-            if "error_message" in status_data:
-                if "error_message" not in fieldnames:
-                    fieldnames = list(fieldnames) + ["error_message"]
-                row["error_message"] = status_data["error_message"]
+            run_status_row = {
+                "case_id": case_id,
+                "status": status_data.get("status", "pending"),
+                "timestamp": status_data.get("timestamp", ""),
+                "timestamp_iso": status_data.get("timestamp_iso", ""),
+                "result_file": status_data.get("result_file", ""),
+                "error_message": status_data.get("error_message", "")
+            }
+        else:
+            # Default row for cases without status updates
+            run_status_row = {
+                "case_id": case_id,
+                "status": "pending",
+                "timestamp": "",
+                "timestamp_iso": "",
+                "result_file": "",
+                "error_message": ""
+            }
+        
+        run_status_rows.append(run_status_row)
     
-    # Write updated metadata
+    # Write run_status.csv
     try:
-        with open(metadata_file, 'w', newline='') as f:
+        fieldnames = ["case_id", "status", "timestamp", "timestamp_iso", "result_file", "error_message"]
+        with open(run_status_file, 'w', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
-            writer.writerows(rows)
+            writer.writerows(run_status_rows)
         
-        print(f"✅ Consolidated status updates into {metadata_file}")
+        print(f"✅ Consolidated status updates into {run_status_file}")
         
     except Exception as e:
-        print(f"Warning: Failed to update metadata.csv: {e}")
+        print(f"Warning: Failed to create run_status.csv: {e}")
+
+
+def initialize_run_status_csv(results_dir: Path) -> None:
+    """Initialize run_status.csv with all cases in pending state.
+    
+    This should be called at the start of a sweep run to create the initial
+    status file with all cases marked as pending.
+    
+    Args:
+        results_dir: Directory containing metadata.csv
+    """
+    metadata_file = results_dir / "metadata.csv"
+    run_status_file = results_dir / "run_status.csv"
+    
+    if not metadata_file.exists():
+        print(f"Warning: metadata.csv not found at {metadata_file}")
+        return
+    
+    # Read metadata to get all case IDs
+    with open(metadata_file, 'r') as f:
+        reader = csv.DictReader(f)
+        metadata_rows = list(reader)
+    
+    # Create initial run_status.csv with all cases pending
+    run_status_rows = []
+    for metadata_row in metadata_rows:
+        case_id = metadata_row.get("case_id")
+        run_status_rows.append({
+            "case_id": case_id,
+            "status": "pending",
+            "timestamp": "",
+            "timestamp_iso": "",
+            "result_file": "",
+            "error_message": ""
+        })
+    
+    # Write initial run_status.csv
+    try:
+        fieldnames = ["case_id", "status", "timestamp", "timestamp_iso", "result_file", "error_message"]
+        with open(run_status_file, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(run_status_rows)
+        
+        print(f"✅ Initialized {run_status_file} with {len(run_status_rows)} pending cases")
+        
+    except Exception as e:
+        print(f"Warning: Failed to initialize run_status.csv: {e}")
 
 
 def get_sweep_progress(results_dir: Path) -> Dict[str, int]:

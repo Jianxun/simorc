@@ -8,7 +8,8 @@ from simorc.status import (
     update_case_status,
     read_case_status,
     collect_case_statuses,
-    consolidate_metadata_csv,
+    consolidate_run_status_csv,
+    initialize_run_status_csv,
     get_sweep_progress,
     CaseStatus
 )
@@ -110,9 +111,9 @@ def test_collect_case_statuses(tmp_path):
     assert statuses[2]["case_id"] == "3"
 
 
-def test_consolidate_metadata_csv(tmp_path):
-    """Test consolidating case statuses into metadata.csv."""
-    # Create metadata.csv
+def test_consolidate_run_status_csv(tmp_path):
+    """Test consolidating case statuses into run_status.csv."""
+    # Create metadata.csv (read-only source of truth)
     metadata_file = tmp_path / "metadata.csv"
     with open(metadata_file, 'w', newline='') as f:
         writer = csv.writer(f)
@@ -127,7 +128,8 @@ def test_consolidate_metadata_csv(tmp_path):
         
         status_data = {
             "case_id": str(i),
-            "status": "completed"
+            "status": "completed",
+            "result_file": f"case_{i}_results.raw"
         }
         
         status_file = case_dir / "run_status.json"
@@ -135,16 +137,58 @@ def test_consolidate_metadata_csv(tmp_path):
             json.dump(status_data, f)
     
     # Consolidate
-    consolidate_metadata_csv(tmp_path)
+    consolidate_run_status_csv(tmp_path)
     
-    # Verify results
-    with open(metadata_file) as f:
+    # Verify run_status.csv was created
+    run_status_file = tmp_path / "run_status.csv"
+    assert run_status_file.exists()
+    
+    with open(run_status_file) as f:
         reader = csv.DictReader(f)
         rows = list(reader)
     
     assert len(rows) == 2
+    assert rows[0]["case_id"] == "1"
     assert rows[0]["status"] == "completed"
+    assert rows[1]["case_id"] == "2"
     assert rows[1]["status"] == "completed"
+    
+    # Verify metadata.csv was not modified
+    with open(metadata_file) as f:
+        reader = csv.DictReader(f)
+        metadata_rows = list(reader)
+    
+    assert metadata_rows[0]["status"] == "pending"  # Unchanged
+    assert metadata_rows[1]["status"] == "pending"  # Unchanged
+
+
+def test_initialize_run_status_csv(tmp_path):
+    """Test initializing run_status.csv from metadata.csv."""
+    # Create metadata.csv
+    metadata_file = tmp_path / "metadata.csv"
+    with open(metadata_file, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(["case_id", "R", "C", "status", "result_file"])
+        writer.writerow(["1", "100", "1n", "pending", "case_1.raw"])
+        writer.writerow(["2", "1k", "10n", "pending", "case_2.raw"])
+        writer.writerow(["3", "10k", "100p", "pending", "case_3.raw"])
+    
+    # Initialize
+    initialize_run_status_csv(tmp_path)
+    
+    # Verify run_status.csv was created
+    run_status_file = tmp_path / "run_status.csv"
+    assert run_status_file.exists()
+    
+    with open(run_status_file) as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+    
+    assert len(rows) == 3
+    for i, row in enumerate(rows, 1):
+        assert row["case_id"] == str(i)
+        assert row["status"] == "pending"
+        assert row["error_message"] == ""
 
 
 def test_get_sweep_progress(tmp_path):
