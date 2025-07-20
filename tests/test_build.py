@@ -146,15 +146,18 @@ wrdata {{ filename_raw }} frequency v(out)
         assert "case_id" in header
         assert "R" in header
         assert "C" in header
-        assert "status" in header
+        assert "result_file" in header
+        # Note: status column removed - now tracked in run_status.csv
         
         # Check data rows (9 cases)
         assert len(lines) == 10  # header + 9 data rows
         
-        # Check that all cases have "pending" status (4th column)
+        # Check that all cases have result_file paths
         for line in lines[1:]:
             columns = line.split(',')
-            assert columns[3] == "pending"  # status column
+            result_file = columns[3]  # result_file column
+            assert "case_" in result_file
+            assert "_results.raw" in result_file
     
     def test_build_force_flag(self):
         """Test build with --force flag overwrites existing files."""

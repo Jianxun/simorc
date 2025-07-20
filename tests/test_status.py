@@ -31,8 +31,8 @@ def test_update_case_status(tmp_path):
     
     assert data["case_id"] == "1"
     assert data["status"] == "running"
-    assert "timestamp" in data
     assert "timestamp_iso" in data
+    # Note: removed unix timestamp, only ISO format now
 
 
 def test_update_case_status_with_error(tmp_path):
