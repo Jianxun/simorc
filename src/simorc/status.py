@@ -130,9 +130,9 @@ def consolidate_run_status_csv(results_dir: Path) -> None:
         fieldnames = reader.fieldnames
         metadata_rows = list(reader)
     
-    # Extract parameter columns (exclude case_id, status, result_file)
+    # Extract parameter columns (exclude case_id, result_file)
     param_columns = [col for col in fieldnames 
-                    if col not in ['case_id', 'status', 'result_file']]
+                    if col not in ['case_id', 'result_file']]
     
     # Collect status updates from case directories
     case_statuses = {}
@@ -211,9 +211,9 @@ def initialize_run_status_csv(results_dir: Path) -> None:
         fieldnames = reader.fieldnames
         metadata_rows = list(reader)
     
-    # Extract parameter columns (exclude case_id, status, result_file)
+    # Extract parameter columns (exclude case_id, result_file)
     param_columns = [col for col in fieldnames 
-                    if col not in ['case_id', 'status', 'result_file']]
+                    if col not in ['case_id', 'result_file']]
     
     # Create initial run_status.csv with all cases pending
     run_status_rows = []

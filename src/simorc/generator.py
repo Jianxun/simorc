@@ -64,8 +64,8 @@ def generate_metadata_csv(sweep_name: str, combinations: List[Dict[str, str]],
     # Get parameter names from first combination
     param_names = list(combinations[0].keys())
     
-    # CSV header: case_id, param1, param2, ..., status, result_file
-    fieldnames = ["case_id"] + param_names + ["status", "result_file"]
+    # CSV header: case_id, param1, param2, ..., result_file
+    fieldnames = ["case_id"] + param_names + ["result_file"]
     
     with open(metadata_path, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -75,7 +75,6 @@ def generate_metadata_csv(sweep_name: str, combinations: List[Dict[str, str]],
             case_id = create_case_id(index)
             row = {
                 "case_id": case_id,
-                "status": "pending",
                 "result_file": f"case_{case_id}/case_{case_id}_results.raw"
             }
             # Add parameter values
