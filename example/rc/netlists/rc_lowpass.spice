@@ -1,0 +1,11 @@
+* RC Low-Pass Filter
+* Simple first-order RC network
+* Cutoff frequency = 1/(2*pi*R*C)
+
+.subckt rc_lowpass vin vout gnd
+R1 vin vout {R}
+C1 vout gnd {C}
+.ends
+
+.param R=1k
+.param C=1n

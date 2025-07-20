@@ -1,0 +1,15 @@
+schematic: ./tb_ac.sch
+template: ./tb_ac.spice.j2
+filename_raw: results.raw
+filename_log: ac.log
+
+parameters:
+  R: 1k
+  C: 1n
+  vin_amplitude: 1.0
+  freq_start: 1
+  freq_stop: 1e6
+  freq_points: 100
+
+plot_specs:
+  bode: ./plots/bode.yaml

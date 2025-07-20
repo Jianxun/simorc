@@ -1,0 +1,14 @@
+dut:
+  schematic: /foss/designs/libs/core_analog/ota_5t/ota_5t.sch
+  netlist: ./netlists/ota_5t_ac.spice
+
+testbenches:
+  dc: ./testbenches/dc
+  ac: ./testbenches/ac
+
+sweeps:
+  pvt_dc: ./sweeps/pvt/sweep_pvt_dc.yaml
+  
+
+
+

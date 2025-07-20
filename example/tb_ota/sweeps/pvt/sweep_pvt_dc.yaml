@@ -1,0 +1,5 @@
+testbench: dc
+parameters:
+  corner: [typical, ss, ff]
+  vdda: [3.3, 3.6, 3.9]
+  temperature: [-40, 25, 85]

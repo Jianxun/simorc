@@ -1,0 +1,17 @@
+Simple RC Circuit Test
+* Basic RC circuit to test ngspice integration
+
+V1 in 0 DC 5.0
+R1 in out 1k
+C1 out 0 1u
+
+.op
+.tran 1u 10m
+
+.control
+run
+write rc_circuit.raw all
+quit
+.endc
+
+.end
