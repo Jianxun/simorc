@@ -33,6 +33,11 @@
 - For complex components, create subdirectories: `/tests/{component}/`
 - Save test fixtures in separate files or a fixtures directory
 
+### Test Execution Strategy
+- **Framework Tests**: Run `python -m pytest tests/` from project root (tests core simorc functionality)
+- **Project Tests**: Run `python -m pytest` from directories containing `sim_setup.yaml` (tests simulation execution)
+- **NEVER** run `python -m pytest` from project root without specifying `tests/` (picks up obsolete test files)
+
 ### Refactoring Guidelines
 - Schedule regular refactoring sessions in the todo list
 - Focus on one aspect per refactoring session (e.g., organization, performance)

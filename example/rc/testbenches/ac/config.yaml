@@ -7,9 +7,11 @@ parameters:
   R: 1k
   C: 1n
   vin_amplitude: 1.0
-  freq_start: 1
-  freq_stop: 1e6
-  freq_points: 100
+  freq_start: 1e3
+  freq_stop: 100e6
+  freq_points: 10
 
-plot_specs:
-  bode: ./plots/bode.yaml
+postprocess:
+  signals:
+    vin: v(vin)
+    vout: v(vout)

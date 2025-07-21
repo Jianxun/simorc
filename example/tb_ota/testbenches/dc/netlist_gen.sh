@@ -1,1 +1,0 @@
-xschem -b -s -n -q --netlist_path . --netlist_filename "tb_dc.spice.j2" "tb_dc.sch"

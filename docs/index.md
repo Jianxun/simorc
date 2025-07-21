@@ -11,6 +11,7 @@ architecture/index
 configuration/index
 cli/index
 implementation/index
+testing
 ```
 
 ## Quick Start
