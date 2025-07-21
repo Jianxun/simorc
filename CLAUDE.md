@@ -5,6 +5,7 @@
 - Follow test-driven development (TDD) approach
 - Aim for MVP implementation following architecture decisions
 - Maintain cross-session continuity through context management
+- Don't check in files under `context`, these are for local developers, not intended for collaborations
 
 ### Development Workflow
 
@@ -145,3 +146,5 @@ Tracks tasks and completion status.
 ## Tools and Commands
 
 - Use `waveview` command to inspect spice `.raw` files by running: `waveview signals filename.raw`, use `--help` option to learn about the tool.
+- Use `waveview signals result.raw` to inspect SPICE simulation results
+- Use `waveview signals --help` to learn more about the tools
