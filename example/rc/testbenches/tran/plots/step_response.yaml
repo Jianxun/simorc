@@ -1,0 +1,11 @@
+title: "RC Low-Pass Filter Step Response"
+x:
+  label: "Time (s)"
+  signal: "time"
+  scale: "linear"
+y:
+  - label: "Voltage (V)"
+    signals:
+      VIN: "v(vin)"
+      VOUT: "v(vout)"
+    scale: "linear"

@@ -1,0 +1,15 @@
+schematic: ./tb_tran.sch
+template: ./tb_tran.spice.j2
+filename_raw: results.raw
+filename_log: tran.log
+
+parameters:
+  R: 1k
+  C: 1n
+  vin_amplitude: 1.0
+  rise_time: 1p
+  sim_time: 10u
+  time_step: 10n
+
+plot_specs:
+  step_response: ./plots/step_response.yaml

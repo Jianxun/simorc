@@ -12,3 +12,7 @@ build/
 
 .cursor/
 context/
+designs/
+.devcontainer/
+
+example/rc/results/

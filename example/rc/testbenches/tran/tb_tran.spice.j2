@@ -1,0 +1,22 @@
+* Transient Analysis Testbench for RC Low-Pass Filter
+* Step response analysis
+
+* --- Circuit Under Test ---
+.include {{config.root}}netlists/rc_lowpass.spice
+
+* --- Test Setup ---
+V_in vin gnd PULSE(0 {{config.vin_amplitude}} 0 {{config.rise_time}} {{config.rise_time}} {{config.sim_time}} {{config.sim_time*2}})
+X_dut vin vout gnd rc_lowpass
+
+* --- Analysis ---
+.control
+save all
+TRAN {{config.time_step}} {{config.sim_time}}
+write {{config.filename_raw}}
+.endc
+
+* --- Parameters ---
+.param R={{config.R}}
+.param C={{config.C}}
+
+.end

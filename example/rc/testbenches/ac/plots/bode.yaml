@@ -1,0 +1,14 @@
+title: "RC Low-Pass Filter Bode Plot"
+x:
+  label: "Frequency (Hz)"
+  signal: "frequency"
+  scale: "log"
+y:
+  - label: "Magnitude (dB)"
+    signals:
+      VOUT: "db(v(vout))"
+    scale: "linear"
+  - label: "Phase (degrees)"
+    signals:
+      VOUT: "ph(v(vout))*180/pi"
+    scale: "linear"

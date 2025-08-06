@@ -1,0 +1,22 @@
+* AC Analysis Testbench for RC Low-Pass Filter
+* Frequency response analysis
+
+* --- Circuit Under Test ---
+.include {{config.root}}netlists/rc_lowpass.spice
+
+* --- Test Setup ---
+V_in vin gnd AC {{config.vin_amplitude}} 0
+X_dut vin vout gnd rc_lowpass
+
+* --- Analysis ---
+.control
+save all
+AC DEC {{config.freq_points}} {{config.freq_start}} {{config.freq_stop}}
+write {{config.filename_raw}}
+.endc
+
+* --- Parameters ---
+.param R={{config.R}}
+.param C={{config.C}}
+
+.end

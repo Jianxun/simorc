@@ -1,0 +1,4 @@
+testbench: ac
+parameters:
+  R: [100, 1k, 10k]
+  C: [100p, 1n, 10n]

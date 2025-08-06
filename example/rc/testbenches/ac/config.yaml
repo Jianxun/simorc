@@ -1,0 +1,18 @@
+schematic: ./tb_ac.sch
+template: ./tb_ac.spice.j2
+filename_raw: results.raw
+filename_log: ac.log
+
+parameters:
+  R: 1k
+  C: 1n
+  vin_amplitude: 1.0
+  freq_start: 1e3
+  freq_stop: 100e6
+  freq_points: 10
+  corner: typical
+
+postprocess:
+  signals:
+    vin: v(vin)
+    vout: v(vout)

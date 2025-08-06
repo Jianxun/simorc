@@ -1,0 +1,10 @@
+dut:
+  netlist: ./netlists/rc_lowpass.spice
+
+testbenches:
+  ac: ./testbenches/ac
+  tran: ./testbenches/tran
+
+sweeps:
+  rc_values: ./sweeps/rc_sweep/sweep_rc_values.yaml
+

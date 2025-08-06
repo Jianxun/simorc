@@ -1,0 +1,85 @@
+"""Parametrized tests for sweep: {{ sweep_name }}"""
+import csv
+from pathlib import Path
+
+import pytest
+
+from simorc.simulation import run_ngspice_simulation, SimulationError
+from simorc.status import update_case_status, CaseStatus
+
+
+def load_test_cases():
+    """Load test cases from metadata.csv - single source of truth."""
+    metadata_path = Path(__file__).parent.parent / "metadata.csv"
+    
+    if not metadata_path.exists():
+        pytest.fail(f"Metadata file not found: {metadata_path}")
+    
+    test_cases = []
+    with open(metadata_path, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            case_id = row['case_id']
+            # Extract parameter values (skip case_id, status, result_file)
+            params = {k: v for k, v in row.items() 
+                     if k not in ['case_id', 'status', 'result_file']}
+            
+            # Create tuple for parametrize: (case_id, param1, param2, ...)
+            param_values = [params[param] for param in {{ param_names | list }}]
+            test_cases.append(tuple([case_id] + param_values))
+    
+    return test_cases
+
+
+@pytest.mark.parametrize(
+    "case_id, {{ param_names | join(', ') }}",
+    load_test_cases()
+)
+def test_simulation_case(case_id, {{ param_names | join(', ') }}):
+    """Run simulation for a parameter combination."""
+    # Parameters for this case (derived from metadata.csv)
+    parameters = {
+{%- for param in param_names %}
+        "{{ param }}": {{ param }},
+{%- endfor %}
+    }
+    
+    # Get case directory
+    case_dir = Path(__file__).parent.parent / f"case_{case_id}"
+    netlist_path = case_dir / "netlist.spice"
+    
+    # Verify the netlist exists
+    assert netlist_path.exists(), f"Netlist not found: {netlist_path}"
+    assert netlist_path.stat().st_size > 0, f"Empty netlist: {netlist_path}"
+    
+    # Update status to running
+    update_case_status(case_dir, case_id, CaseStatus.RUNNING)
+    
+    try:
+        # Execute ngspice simulation using utility function
+        raw_file, simulation_duration, relative_result_path = run_ngspice_simulation(
+            case_id=case_id,
+            netlist_path=netlist_path,
+            case_dir=case_dir,
+            parameters=parameters,
+            timeout=60
+        )
+        
+        # Update status to completed
+        update_case_status(
+            case_dir, 
+            case_id, 
+            CaseStatus.COMPLETED,
+            result_file=relative_result_path,
+            simulation_duration=simulation_duration
+        )
+        
+    except SimulationError as e:
+        # Update status to failed with error message
+        update_case_status(
+            case_dir,
+            case_id, 
+            CaseStatus.FAILED,
+            error_message=str(e)
+        )
+        pytest.fail(str(e))
