@@ -73,6 +73,7 @@ def extract_signals_direct(raw_file_path, signal_expressions):
     # Extract each signal using spicelib
     signal_data = {}
     
+    
     for signal_name, spice_expr in signal_expressions.items():
         print(f"Extracting {signal_name}: {spice_expr}")
         
